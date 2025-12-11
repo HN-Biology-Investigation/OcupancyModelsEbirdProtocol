@@ -5,6 +5,12 @@ format: html
 editor: visual
 ---
 
-This is a "beta" version of the protocol.
+# Bird Occupancy Model Protocol Using eBird Data for Honduras
 
-[The full protocol R code and description](eBirdDataAnalysisProtocol.html)
+This repository contains a reproducible workflow for modeling bird occupancy across Honduras using community-science data from eBird. The goal of this protocol is to provide researchers, students, and conservation practitioners with a transparent, standardized approach for preparing, analyzing, and interpreting occupancy models for multiple species—particularly Nearctic–Neotropical migrants and species of conservation concern.
+
+The workflow integrates data cleaning, spatial filtering, effort standardization, covariate extraction, and hierarchical occupancy modeling implemented in R. All steps are designed to follow best practices in occupancy analysis, ensuring that results are robust, comparable across species, and useful for conservation decision-making in Honduran landscapes.
+
+Whether you are new to hierarchical models or experienced with eBird data, this protocol offers a clear guide to move from raw checklists to interpretable maps and ecological insights.
+
+[R Code and Description](eBirdDataAnalysisProtocol.html)

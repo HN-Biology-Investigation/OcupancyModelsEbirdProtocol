@@ -5,24 +5,30 @@ format: html
 editor: visual
 ---
 
-## Quarto
-
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+# Load packages
 
 ```{r}
-1 + 1
+library(sf)
+library(tidyverse)
+library(unmarked)
+library(terra)
 ```
 
-You can add options to executable code like this
+
+# Load datasets
 
 ```{r}
-#| echo: false
-2 * 2
+setchr <- read.delim("data/ebd_HN_gchwar_202301_202509_smp_relAug-2025.txt")
+setchr_sam <- read.delim("data/ebd_HN_gchwar_202301_202509_smp_relAug-2025_sampling.txt")
+
+GridHN <- st_read("data/grid_honduras.gpkg")
+plandHN <- read.delim("data/pland_all_wider.txt")
+
+GridHN_pland <- GridHN %>%
+  left_join(plandHN, by = "grid_id")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+head(GridHN_pland)
+```
+
