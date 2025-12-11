@@ -1,0 +1,240 @@
+---
+title: "Ebird Protocol R code"
+author: "David Murillo"
+format: html
+editor: visual
+---
+
+# Load packages
+
+```{r, warning=FALSE, message=FALSE}
+library(sf)
+library(tidyverse)
+library(unmarked)
+library(terra)
+```
+
+
+# Load datasets
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+setchr <- read.delim("data/ebd_HN_gchwar_202301_202509_smp_relAug-2025.txt")
+setchr_sam <- read.delim("data/ebd_HN_gchwar_202301_202509_smp_relAug-2025_sampling.txt")
+
+GridHN <- st_read("data/grid_honduras.gpkg")
+plandHN <- read.delim("data/pland_all_wider.txt")
+
+GridHN_pland <- GridHN %>%
+  left_join(plandHN, by = "grid_id")
+```
+
+# Cleanind datasets
+
+```{r,  warning=FALSE, message=FALSE}
+setchr_clean <- setchr %>% 
+  dplyr::select(LATITUDE, LONGITUDE, STATE, TIME.OBSERVATIONS.STARTED, OBSERVATION.DATE, NUMBER.OBSERVERS, OBSERVATION.COUNT, OBSERVATION.TYPE, DURATION.MINUTES, EFFORT.DISTANCE.KM, ALL.SPECIES.REPORTED,SAMPLING.EVENT.IDENTIFIER) %>% 
+  mutate(OBSERVATION.COUNT = as.factor(OBSERVATION.COUNT)) %>% 
+  mutate(OBSERVATION.COUNT = fct_recode(OBSERVATION.COUNT, "1" = "X")) %>% 
+  mutate(OBSERVATION.COUNT = as.numeric(OBSERVATION.COUNT))
+
+
+setchr_sam_clean <- setchr_sam %>% 
+  dplyr::select(LATITUDE, LONGITUDE, STATE, TIME.OBSERVATIONS.STARTED, OBSERVATION.DATE, NUMBER.OBSERVERS, OBSERVATION.TYPE, DURATION.MINUTES, EFFORT.DISTANCE.KM, ALL.SPECIES.REPORTED,SAMPLING.EVENT.IDENTIFIER) %>% 
+  mutate(OBSERVATION.COUNT = as.numeric(0)) %>% 
+  dplyr::select(LATITUDE, LONGITUDE, STATE, TIME.OBSERVATIONS.STARTED, OBSERVATION.DATE, NUMBER.OBSERVERS, OBSERVATION.COUNT, OBSERVATION.TYPE, DURATION.MINUTES, EFFORT.DISTANCE.KM, ALL.SPECIES.REPORTED,SAMPLING.EVENT.IDENTIFIER) 
+
+setchr_full <- rbind(setchr_clean, setchr_sam_clean)
+
+setchr_full_clean <- setchr_full %>% 
+  group_by(LATITUDE, LONGITUDE, STATE, TIME.OBSERVATIONS.STARTED, OBSERVATION.DATE, NUMBER.OBSERVERS, OBSERVATION.TYPE, DURATION.MINUTES, EFFORT.DISTANCE.KM, ALL.SPECIES.REPORTED,SAMPLING.EVENT.IDENTIFIER) %>% 
+  summarise(OBSERVATION.COUNT = max(OBSERVATION.COUNT))
+
+
+# setchr_full_clean %>% 
+#  group_by(SAMPLING.EVENT.IDENTIFIER) %>% 
+#  summarise(Replicas = n()) %>% 
+#  arrange(desc(Replicas))
+
+```
+
+
+
+# Convertirlo a shapefile
+
+```{r,  warning=FALSE, message=FALSE}
+setchr_st <- st_as_sf(setchr_full_clean,
+                      coords = c("LONGITUDE", "LATITUDE"),
+                       crs = "4326")
+
+plot(setchr_st["OBSERVATION.COUNT"])
+
+# write_sf(setchr_st, "setchr_st.gpkg")
+```
+
+
+
+# Cargar setchr con grillas
+
+```{r,  warning=FALSE, message=FALSE}
+setchr_grid <- st_read("data/setchr_gridID.gpkg")
+
+plot(setchr_grid["OBSERVATION.COUNT"])
+```
+
+
+# Unir el setchr con metricas del paisaje
+
+```{r,  warning=FALSE, message=FALSE}
+setchr_land <- setchr_grid %>% 
+  left_join(plandHN, by = "grid_id")
+```
+
+  
+
+
+# Modelar
+
+```{r,  warning=FALSE, message=FALSE}
+ModeloNulo <- glm(OBSERVATION.COUNT ~ 1, family = "poisson", data= setchr_land)
+ModeloPland1 <- glm(OBSERVATION.COUNT ~ pland_1, family = "poisson", data= setchr_land)
+
+summary(ModeloNulo)
+summary(ModeloPland1)
+
+```
+
+# Preparar formato unmarked
+```{r,  warning=FALSE, message=FALSE, results='hide'}
+library(lubridate)
+
+str(setchr_land)
+
+setchr_land_pro <- setchr_land %>% 
+  mutate(Time =  lubridate::hms(TIME.OBSERVATIONS.STARTED) ) %>% 
+  mutate(Hora = hour(Time),
+         Minuto = minute(Time)) %>% 
+  mutate(TimeMil = as.numeric(sprintf("%2d%02d", Hora, Minuto))) %>% 
+  mutate(Date = ymd(OBSERVATION.DATE) ) %>% 
+  mutate(DateOrd = yday(Date)  ) %>% 
+  filter(NUMBER.OBSERVERS < 6) %>%
+  filter(OBSERVATION.TYPE %in% c("Stationary", "Traveling")) %>% 
+  filter(DURATION.MINUTES < 61) %>% 
+  filter(EFFORT.DISTANCE.KM <= 1) %>% 
+  filter(ALL.SPECIES.REPORTED == 1) %>% 
+  mutate(X = st_coordinates(geom)[,1],
+         Y = st_coordinates(geom)[,2]) %>% 
+  mutate(Meses = month(Date, label = TRUE, abbr = FALSE )) %>% 
+  filter(Meses %in% c("October", "November",
+                      "December", "January", "February"))
+
+
+
+str(setchr_land_pro)
+
+
+
+setchr_land_wider <- setchr_land_pro %>% 
+  mutate(DateTime = as.POSIXct(paste(Date, Time))) %>% 
+  arrange(grid_id, DateTime) %>% 
+  group_by(grid_id) %>% 
+  mutate(Visit = row_number()) %>% 
+  ungroup()
+
+
+setchr_land_wider2 <- setchr_land_wider %>% 
+  st_set_geometry(NULL) %>% 
+  select(grid_id, Visit, OBSERVATION.COUNT) %>% 
+  pivot_wider(names_from = Visit,
+              values_from = OBSERVATION.COUNT,
+              names_prefix = "Occ_",
+              values_fill = NA)
+
+setchr_Time <- setchr_land_wider %>% 
+  st_set_geometry(NULL) %>% 
+  select(grid_id, Visit, TimeMil) %>%
+  pivot_wider(names_from = Visit,
+              values_from = TimeMil,
+              names_prefix = "Time_",
+              values_fill = NA)
+
+setchr_DateOrd <- setchr_land_wider %>% 
+  st_set_geometry(NULL) %>% 
+  select(grid_id, Visit, DateOrd) %>%
+  pivot_wider(names_from = Visit,
+              values_from = DateOrd,
+              names_prefix = "Date_",
+              values_fill = NA)
+
+
+
+MetricasPaisaje <- setchr_land_pro %>% 
+  st_set_geometry(NULL) %>% 
+  group_by(grid_id) %>% 
+  summarise(pland_1 = max(pland_1),
+            pland_2 = max(pland_2),
+            pland_3 = max(pland_3),
+            pland_4 = max(pland_4),
+            pland_5 = max(pland_5),
+            pland_6 = max(pland_6),
+            pland_12 = max(pland_12),
+            pland_14 = max(pland_14))
+  
+
+
+SETCHR_land <- setchr_land_wider2 %>% 
+  left_join(MetricasPaisaje, by = "grid_id")
+```
+
+
+
+# Preparar el unmaked frame
+
+
+```{r,  warning=FALSE, message=FALSE}
+CovDet <- list( "Date" = setchr_DateOrd[,2:6],
+                "Time" = setchr_Time[,2:6]
+  
+)
+
+Setchr_y <- SETCHR_land[,2:6]
+
+SiteCov <- SETCHR_land[,31:38]
+
+
+Setchr_umf <- unmarkedFrameOccu(y = Setchr_y,
+                                siteCovs = SiteCov,
+                                obsCovs = CovDet)
+
+
+summary(Setchr_umf)
+
+
+Modelo1 <- occu(~Date + Time ~pland_2, data = Setchr_umf)
+summary(Modelo1)
+
+
+
+GridHN_pland_df <- st_drop_geometry(GridHN_pland)
+
+SETCHR_pred <- unmarked::predict(Modelo1, type = "state", 
+                                 newdata = GridHN_pland_df,
+                                 appendData = TRUE)
+
+
+SETCHR_pred_sf <- GridHN %>% 
+  left_join(SETCHR_pred, by = "grid_id")
+
+SETCHR_map <- ggplot() +
+  geom_sf(data = SETCHR_pred_sf, aes(fill = Predicted), color = NA) +
+  scale_fill_viridis_c(option = "plasma") +
+  theme_classic()
+   
+
+
+```
+
+
+ggsave("Products/SETCHR_occ.png", plot = SETCHR_map,
+       units = "in", height = 3.5, width = 7,
+       dpi = 600)
+
