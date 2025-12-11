@@ -104,7 +104,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <section id="load-packages" class="level1">
-<h1>Load packages</h1>
+<h1>1. Load packages</h1>
+<p>Loads all required libraries for spatial data handling (sf, terra), data wrangling (tidyverse), and occupancy modeling (unmarked).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
@@ -113,7 +114,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 <section id="load-datasets" class="level1">
-<h1>Load datasets</h1>
+<h1>2. Load datasets</h1>
+<p>Imports eBird detection and sampling tables, the Honduras grid layer, and landscape metrics (pland). Merges landscape metrics with the grid.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>setchr <span class="ot">&lt;-</span> <span class="fu">read.delim</span>(<span class="st">"data/ebd_HN_gchwar_202301_202509_smp_relAug-2025.txt"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>setchr_sam <span class="ot">&lt;-</span> <span class="fu">read.delim</span>(<span class="st">"data/ebd_HN_gchwar_202301_202509_smp_relAug-2025_sampling.txt"</span>)</span>
@@ -125,8 +127,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(plandHN, <span class="at">by =</span> <span class="st">"grid_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="cleanind-datasets" class="level1">
-<h1>Cleanind datasets</h1>
+<section id="clean-datasets" class="level1">
+<h1>Clean datasets</h1>
+<p>Selects relevant eBird fields, standardizes OBSERVATION.COUNT, and merges detection and non-detection records. Removes duplicates by summarizing counts per unique sampling event.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>setchr_clean <span class="ot">&lt;-</span> setchr <span class="sc">%&gt;%</span> </span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(LATITUDE, LONGITUDE, STATE, TIME.OBSERVATIONS.STARTED, OBSERVATION.DATE, NUMBER.OBSERVERS, OBSERVATION.COUNT, OBSERVATION.TYPE, DURATION.MINUTES, EFFORT.DISTANCE.KM, ALL.SPECIES.REPORTED,SAMPLING.EVENT.IDENTIFIER) <span class="sc">%&gt;%</span> </span>
@@ -153,8 +156,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">#  arrange(desc(Replicas))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="convertirlo-a-shapefile" class="level1">
-<h1>Convertirlo a shapefile</h1>
+<section id="convert-to-spatial-object" class="level1">
+<h1>Convert to spatial object</h1>
+<p>Transforms the cleaned dataset into an sf object using latitude/longitude and previews detections on a map</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>setchr_st <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(setchr_full_clean,</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"LONGITUDE"</span>, <span class="st">"LATITUDE"</span>),</span>
@@ -171,8 +175,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write_sf(setchr_st, "setchr_st.gpkg")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="cargar-setchr-con-grillas" class="level1">
-<h1>Cargar setchr con grillas</h1>
+<section id="load-detections-with-grid-ids" class="level1">
+<h1>Load detections with grid IDs</h1>
+<p>Reads a preprocessed file where each eBird checklist has already been spatially assigned to a grid cell.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>setchr_grid <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/setchr_gridID.gpkg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -195,15 +200,17 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 </section>
-<section id="unir-el-setchr-con-metricas-del-paisaje" class="level1">
-<h1>Unir el setchr con metricas del paisaje</h1>
+<section id="join-ebird-data-with-landscape-metrics" class="level1">
+<h1>Join eBird data with landscape metrics</h1>
+<p>Adds pland metrics to each checklist based on the grid cell.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>setchr_land <span class="ot">&lt;-</span> setchr_grid <span class="sc">%&gt;%</span> </span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(plandHN, <span class="at">by =</span> <span class="st">"grid_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="modelar" class="level1">
-<h1>Modelar</h1>
+<section id="basic-glm-modeling-exploratory" class="level1">
+<h1>Basic GLM modeling (exploratory)</h1>
+<p>Fits simple Poisson models to test relationships between detections and land cover (pland_1) before building the hierarchical model.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ModeloNulo <span class="ot">&lt;-</span> <span class="fu">glm</span>(OBSERVATION.COUNT <span class="sc">~</span> <span class="dv">1</span>, <span class="at">family =</span> <span class="st">"poisson"</span>, <span class="at">data=</span> setchr_land)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>ModeloPland1 <span class="ot">&lt;-</span> <span class="fu">glm</span>(OBSERVATION.COUNT <span class="sc">~</span> pland_1, <span class="at">family =</span> <span class="st">"poisson"</span>, <span class="at">data=</span> setchr_land)</span>
@@ -253,8 +260,9 @@ Number of Fisher Scoring iterations: 6</code></pre>
 </div>
 </div>
 </section>
-<section id="preparar-formato-unmarked" class="level1">
-<h1>Preparar formato unmarked</h1>
+<section id="prepare-data-for-unmarked" class="level1">
+<h1>Prepare data for unmarked</h1>
+<p>Cleans effort and temporal variables, filters checklists by quality criteria (effort, protocol, observers), extracts coordinates and months, and selects the overwintering period. Creates visit-level long and wide formats, builds observation covariates (time, date), and summarizes landscape metrics per grid.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -336,8 +344,9 @@ Number of Fisher Scoring iterations: 6</code></pre>
 <span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(MetricasPaisaje, <span class="at">by =</span> <span class="st">"grid_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="preparar-el-unmaked-frame" class="level1">
-<h1>Preparar el unmaked frame</h1>
+<section id="build-unmarked-frame" class="level1">
+<h1>Build unmarked frame</h1>
+<p>Creates the detection history matrix (y), observation covariates (obsCovs), and site covariates (siteCovs). Packages them into an unmarkedFrameOccu object for occupancy modeling.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>CovDet <span class="ot">&lt;-</span> <span class="fu">list</span>( <span class="st">"Date"</span> <span class="ot">=</span> setchr_DateOrd[,<span class="dv">2</span><span class="sc">:</span><span class="dv">6</span>],</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Time"</span> <span class="ot">=</span> setchr_Time[,<span class="dv">2</span><span class="sc">:</span><span class="dv">6</span>]</span>
@@ -393,6 +402,12 @@ Observation-level covariates:
  Max.   :366.0   Max.   :2230.0  
  NA's   :1058    NA's   :1058    </code></pre>
 </div>
+</div>
+</section>
+<section id="fit-occupancy-model" class="level1">
+<h1>10. Fit occupancy model</h1>
+<p>Fits a single-season occupancy model with detection submodel (Date + Time) and occupancy driven by landscape structure (pland_2).</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>Modelo1 <span class="ot">&lt;-</span> <span class="fu">occu</span>(<span class="sc">~</span>Date <span class="sc">+</span> Time <span class="sc">~</span>pland_2, <span class="at">data =</span> Setchr_umf)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(Modelo1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -422,14 +437,35 @@ Number of sites: 408</code></pre>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>SETCHR_pred_sf <span class="ot">&lt;-</span> GridHN <span class="sc">%&gt;%</span> </span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(SETCHR_pred, <span class="at">by =</span> <span class="st">"grid_id"</span>)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>SETCHR_map <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> SETCHR_pred_sf, <span class="fu">aes</span>(<span class="at">fill =</span> Predicted), <span class="at">color =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"plasma"</span>) <span class="sc">+</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(SETCHR_pred, <span class="at">by =</span> <span class="st">"grid_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>ggsave(“Products/SETCHR_occ.png”, plot = SETCHR_map, units = “in”, height = 3.5, width = 7, dpi = 600)</p>
+</section>
+<section id="predict-and-map-occupancy" class="level1">
+<h1>11. Predict and map occupancy</h1>
+<p>Predicts occupancy probability for all grid cells in Honduras, merges predictions back to spatial data, and generates a map of occupancy probabilities. Exports the map as a high-resolution PNG.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>SETCHR_map <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> SETCHR_pred_sf, <span class="fu">aes</span>(<span class="at">fill =</span> Predicted), <span class="at">color =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"plasma"</span>) <span class="sc">+</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>SETCHR_map</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eBirdDataAnalysisProtocol_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="save-products" class="level1">
+<h1>11. Save products</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"Products/SETCHR_occ.png"</span>, <span class="at">plot =</span> SETCHR_map,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">units =</span> <span class="st">"in"</span>, <span class="at">height =</span> <span class="fl">3.5</span>, <span class="at">width =</span> <span class="dv">7</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">dpi =</span> <span class="dv">600</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 
 </main>
