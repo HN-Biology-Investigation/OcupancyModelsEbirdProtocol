@@ -1,0 +1,10 @@
+---
+title: "Bird Ocupancy Model using eBird in Honduras"
+author: "David Murillo"
+format: html
+editor: visual
+---
+
+This is a "beta" version of the protocol.
+
+[The full protocol R code and description](eBirdDataAnalysisProtocol.html)
