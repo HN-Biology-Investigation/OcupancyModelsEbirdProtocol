@@ -236,7 +236,7 @@ summary(Setchr_umf)
 Fits a single-season occupancy model with detection submodel (Date + Time) and occupancy driven by landscape structure (pland_2).
 
 ```{r,  warning=FALSE, message=FALSE}
-Modelo1 <- occu(~Date + Time ~pland_2, data = Setchr_umf)
+Modelo1 <- occu(~Date + Time ~pland_3, data = Setchr_umf)
 summary(Modelo1)
 
 
